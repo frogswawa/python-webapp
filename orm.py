@@ -29,6 +29,10 @@ async def create_pool(loop, **kw):
         minsize=kw.get('minsize', 1),
         loop=loop
     )
+    ##在程序结束之前，把连接池关闭
+##    if __pool is not None:
+##        __pool.close()
+##        await __pool.wait_closed()
 
 async def select(sql, args, size=None):
     log(sql, args)
@@ -36,6 +40,10 @@ async def select(sql, args, size=None):
     async with __pool.get() as conn:
         async with conn.cursor(aiomysql.DictCursor) as cur:
             await cur.execute(sql.replace('?', '%s'), args or ())
+            ##要始终坚持使用带参数的SQL，而不是自己拼接SQL字符串，这样可以防止SQL注入攻击
+            ##如拼接字符串，在登录时，用户名： ‘or 1 = 1 –
+            ##则拼接后会：SELECT * FROM user_table WHERE username='’or 1 = 1 -- and password='’
+            ##输出结果
             if size:
                 rs = await cur.fetchmany(size)
             else:
